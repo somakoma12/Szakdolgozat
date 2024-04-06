@@ -4,11 +4,11 @@ import matplotlib as mpl
 
 mpl.use('TkAgg')
 
-xcorr = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-ycorr = np.empty(1, dtype=int)
+xcorr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+ycorr = []
 
-for i in range(9):
-    ycorr = np.insert(ycorr, 0, np.random.randint(20))
+for i in range(10):
+    ycorr.append(np.random.randint(20))
 
 print(ycorr)
 print(xcorr)

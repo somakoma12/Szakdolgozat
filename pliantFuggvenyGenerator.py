@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -11,9 +13,11 @@ mpl.use('TkAgg')
 #xminI = int(input("x min"))
 #xmaxI = int(input("x max"))
 
+
 def pliantPoint(alpha, a, x):
-    print(1/(1+math.exp(-alpha*(x+a))))
-    return 1/(1+math.exp(-alpha*(x+a)))
+    return 1/(1+math.exp(-alpha*(x-a)))
+
+
 def pliantFn(alpha, a, xmin, xmax):
     xcorr = []
     for i in range(xmin, xmax):
@@ -23,16 +27,26 @@ def pliantFn(alpha, a, xmin, xmax):
     for i in range(xmin, xmax):
         ycorr.append(pliantPoint(alpha, a, i))
 
-    print(xcorr)
-    print(xcorr[0])
-    print(ycorr)
-    print(ycorr[0])
+    return np.array([xcorr, ycorr])
 
-    plt.plot(xcorr, ycorr, color='red')
+
+def pliantFnTombAbrazolas(pliantTomb):
+    plt.figure().set_figheight(2.5)
+    for pfgv in pliantTomb:
+        plt.plot(pfgv[0], pfgv[1])
+
+
     plt.grid()
     plt.show()
 
 
-#pliantFn(alphaI, aI, xmennyI)
-pliantFn(1, 0, -10, 10)
+pliantok = [pliantFn(1, 7, 0, 14)]
+for i in range(5):
+    alpha = random.randint(-3, 3)
+    a = random.randint(7, 40)
+    xmin = a - 7
+    xmax = a + 7
+    pliantok.append(pliantFn(alpha, a, xmin, xmax))
 
+
+pliantFnTombAbrazolas(pliantok)

@@ -20,14 +20,27 @@ def pliantPoint(alpha, a, x):
 
 def pliantFn(alpha, a, xmin, xmax):
     xcorr = []
-    for i in range(xmin, xmax):
+    for i in range(xmin, xmax+1):
         xcorr.append(i)
 
     ycorr = []
-    for i in range(xmin, xmax):
+    for i in range(xmin, xmax+1):
         ycorr.append(pliantPoint(alpha, a, i))
 
+    ycorr = alphaTransform(ycorr, alpha)
+
     return np.array([xcorr, ycorr])
+
+
+def alphaTransform(ycorrs, alpha):
+    if alpha < 0:
+        for i in range(len(ycorrs)):
+            ycorrs[i] /= 2
+    elif alpha > 0:
+        for i in range(len(ycorrs)):
+            ycorrs[i] /= 2
+            ycorrs[i] += 0.5
+    return ycorrs
 
 
 def pliantFnTombAbrazolas(pliantTomb):
@@ -35,14 +48,13 @@ def pliantFnTombAbrazolas(pliantTomb):
     for pfgv in pliantTomb:
         plt.plot(pfgv[0], pfgv[1])
 
-
     plt.grid()
     plt.show()
 
 
-pliantok = [pliantFn(1, 7, 0, 14)]
+pliantok = [pliantFn(-1, 7, 0, 14)]
 for i in range(5):
-    alpha = random.randint(-3, 3)
+    alpha = random.uniform(-3, 3)
     a = random.randint(7, 40)
     xmin = a - 7
     xmax = a + 7

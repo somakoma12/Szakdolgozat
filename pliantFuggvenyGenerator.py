@@ -1,5 +1,4 @@
 import random
-
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -8,24 +7,13 @@ import math
 mpl.use('TkAgg')
 
 
-#alphaI = int(input("alpha"))
-#aI = int(input("a"))
-#xminI = int(input("x min"))
-#xmaxI = int(input("x max"))
-
-
 def pliantPoint(alpha, a, x):
-    return 1/(1+math.exp(-alpha*(x-a)))
+    return 1/(1 + np.exp(-alpha*(x - a)))
 
 
 def pliantFn(alpha, a, xmin, xmax):
-    xcorr = []
-    for i in range(xmin, xmax+1):
-        xcorr.append(i)
-
-    ycorr = []
-    for i in range(xmin, xmax+1):
-        ycorr.append(pliantPoint(alpha, a, i))
+    xcorr = np.arange(xmin, xmax + 1)
+    ycorr = pliantPoint(alpha, a, xcorr)
 
     ycorr = alphaTransform(ycorr, alpha)
 
@@ -34,16 +22,17 @@ def pliantFn(alpha, a, xmin, xmax):
 
 def alphaTransform(ycorrs, alpha):
     if alpha < 0:
-        for i in range(len(ycorrs)):
-            ycorrs[i] /= 2
+        ycorrs /= 2
     elif alpha > 0:
-        for i in range(len(ycorrs)):
-            ycorrs[i] /= 2
-            ycorrs[i] += 0.5
+        ycorrs = ycorrs / 2 + 0.5
     return ycorrs
 
 
-def pliantFnTombAbrazolas(pliantTomb):
+def pliantSigmoidAggregate(pliantTomb):
+    return 1
+
+
+def pliantArrayShow(pliantTomb):
     plt.figure().set_figheight(2.5)
     for pfgv in pliantTomb:
         plt.plot(pfgv[0], pfgv[1])
@@ -52,13 +41,18 @@ def pliantFnTombAbrazolas(pliantTomb):
     plt.show()
 
 
-pliantok = [pliantFn(-1, 7, 0, 14)]
-for i in range(5):
-    alpha = random.uniform(-3, 3)
-    a = random.randint(7, 40)
-    xmin = a - 7
-    xmax = a + 7
-    pliantok.append(pliantFn(alpha, a, xmin, xmax))
+def main():
+    plotmin = 0
+    plotmax = 50
+
+    pliantok = [pliantFn(-1, 7, plotmin, plotmax)]
+    for i in range(5):
+        alpha = random.uniform(-3, 3)
+        a = random.randint(7, 40)
+        pliantok.append(pliantFn(alpha, a, plotmin, plotmax))
+
+    pliantArrayShow(pliantok)
 
 
-pliantFnTombAbrazolas(pliantok)
+if __name__ == "__main__":
+    main()

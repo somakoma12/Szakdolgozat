@@ -14,28 +14,30 @@ getcontext().prec = 300
 
 #Takes in alpha,a and the x point to create the y value of a sigmoid function
 def sigmoidPoint(alpha, a, x):
-    return 1 / (1 + np.exp(-alpha * (x - a)))
+    return Decimal(0.99) / (1 + np.exp(-alpha * (x - a)))
 
 
 #Takes in an array of sigmoid finctions parameters [alpha, a, xmin, xmax] and returns an array of sigmoid functions x and y coordinates
 def sigmoidArray(sigmoidparams):
     results = []
+    print(sigmoidparams[0][4])
     sigmoidparams = sigmoidparams.astype(str)
     for sigmoid in sigmoidparams:
+        direction, sigmoid = sigmoid[-1], sigmoid[:-1]
         alpha, a, xmin, xmax = map(Decimal, sigmoid)
         xcorr = np.arange(xmin, xmax + 1)
         ycorr = sigmoidPoint(alpha, a, xcorr)
-        ycorr = alphaTransform(ycorr, alpha)
+        ycorr = alphaTransform(ycorr, direction)
         results.append([xcorr, ycorr])
     return np.array(results)
 
 
 #Transforms a point of a sigmoid function into a 1-0.5 , 0.5-0 form
-def alphaTransform(ycorrs, alpha):
-    if alpha < 0:
-        ycorrs /= Decimal(2)
-    elif alpha > 0:
-        ycorrs = ycorrs / Decimal(2) + Decimal(0.5)
+def alphaTransform(ycorrs, direction):
+    if direction == "1.0":
+        ycorrs = (Decimal(1) + ycorrs) / 2
+    else:
+        ycorrs = (Decimal(1) - ycorrs) / 2
     return ycorrs
 
 
@@ -99,12 +101,12 @@ def sigmoidArrayAndAggregatePlot(sigmoidArray):
     plt.show()
 
 
-def createParamsArray(alpha, a, xmin, xmax):
-    return np.array([[alpha, a, xmin, xmax]])
+def createParamsArray(alpha, a, xmin, xmax, direction):
+    return np.array([[alpha, a, xmin, xmax, direction]])
 
 
-def appendParams(paramArray, alpha, a, xmin, xmax):
-    paramArray = np.append(paramArray, [[alpha, a, xmin, xmax]], axis=0)
+def appendParams(paramArray, alpha, a, xmin, xmax, direction):
+    paramArray = np.append(paramArray, [[alpha, a, xmin, xmax, direction]], axis=0)
     return paramArray
 
 
@@ -131,7 +133,8 @@ def aggMinIndexes(aggregated):
 def aggMinValues(aggregated):
     return aggregated[1][aggMinIndexes(aggregated)]
 
-
+#Takes a 2d array as parameter that consists of two arrays.
+#The first array is x values, the second is y values
 def prayingToGod():
     pass
 

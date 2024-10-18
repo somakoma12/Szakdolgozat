@@ -22,7 +22,7 @@ aggregate = sfl.sigmoidAggregate(sigmoidok)
 aggregateminfirst = sfl.sigmoidAggregate(sigmoidokminfirst)
 
 #subtracting first sigmoid
-kivonas = sfl.subtractFirstSigmoidKnowingAlpha(aggregate, 1/4)
+kivonas = sfl.subtractFirstSigmoidByDivideKnowingAlpha(aggregate, 1/4)
 
 #plots
 #sfl.aggregateShow(aggregate)

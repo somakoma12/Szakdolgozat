@@ -151,30 +151,48 @@ def aggMinMaxIndexesSorted(aggregated):
     return sortedindexes
 
 
-def subtractFirstSigmoidKnowingAlpha(inputaggregate, alpha):
-    returnaggregate = inputaggregate
-    minmaxes = aggMinMaxIndexesSorted(inputaggregate)
-    xmin = inputaggregate[0][0]
-    xmax = inputaggregate[0][-1]
-    inputaggregateY = np.array(inputaggregate[1])
+# Computes the first sigmoid curve from the aggregate,
+# based on its first inflection point and alpha parameter.
+def firstSigmoidOfAggregateFromInflectionPointKnowingAlpha(aggregate, alpha):
+    minmaxes = aggMinMaxIndexesSorted(aggregate)
+    xmin = aggregate[0][0]
+    xmax = aggregate[0][-1]
+    aggregateY = np.array(aggregate[1])
 
-    inputprod = (1/inputaggregateY)-1
-
-    inputaggregateY[(0.499999 < inputaggregateY) & (inputaggregateY < 0.500001)] = 0.5
-    inputaggregateY = gaussian_filter1d(inputaggregateY, 4)
+    aggregateY[(0.499999 < aggregateY) & (aggregateY < 0.500001)] = 0.5
+    inputaggregateY = gaussian_filter1d(aggregateY, 4)
 
     derrivates = np.gradient(np.gradient(inputaggregateY))
     infls = np.where(1 < abs(np.diff(np.sign(derrivates))))[0]
 
-    subtractionParams = createParamsArray(alpha, infls[0]+xmin, xmin, xmax, minmaxes[0] < minmaxes[1])
+    subtractionParams = createParamsArray(alpha, infls[0] + xmin, xmin, xmax, minmaxes[0] < minmaxes[1])
     subtractionSigmoid = sigmoidArray(subtractionParams)
 
-    preprod = (1-subtractionSigmoid[0][1]) / subtractionSigmoid[0][1]
+    return subtractionSigmoid
+
+
+# Divides the aggregates prod by a sigmoid,
+# to modify its values and returns the adjusted aggregate.
+def subtractSigmoidFromAggregateByDivide(inputaggregate, sigmoid):
+    returnaggregate = inputaggregate
+
+    inputprod = (1 / inputaggregate[1]) - 1
+    preprod = (1 - sigmoid[0][1]) / sigmoid[0][1]
     prod = inputprod / preprod
 
-    returnaggregate[1] =inputaggregate[1] = 1 / (1 + prod)
+    returnaggregate[1] = inputaggregate[1] = 1 / (1 + prod)
 
     return returnaggregate
+
+
+# Subtracts the first sigmoid from the aggregate by dividing its prod,
+# based on the alpha parameter.
+def subtractFirstSigmoidByDivideKnowingAlpha(inputaggregate, alpha):
+    firstsigmoid = firstSigmoidOfAggregateFromInflectionPointKnowingAlpha(inputaggregate, alpha)
+
+    newaggregate = subtractSigmoidFromAggregateByDivide(inputaggregate, firstsigmoid)
+
+    return newaggregate
 
 
 #Takes a 2d array as parameter that consists of two arrays.

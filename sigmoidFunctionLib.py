@@ -98,12 +98,12 @@ def sigmoidArrayAndAggregatePlot(sigmoidArray):
     plt.show()
 
 
-def createParamsArray(alpha, a, xmin, xmax, direction):
-    return np.array([[alpha, a, xmin, xmax, direction]], dtype=np.float64)
+def createParamsArray(alpha, a, xmin, xmax, orientation):
+    return np.array([[alpha, a, xmin, xmax, orientation]], dtype=np.float64)
 
 
-def appendParams(paramArray, alpha, a, xmin, xmax, direction):
-    paramArray = np.append(paramArray, [[alpha, a, xmin, xmax, direction]], axis=0)
+def appendParams(paramArray, alpha, a, xmin, xmax, orientation):
+    paramArray = np.append(paramArray, [[alpha, a, xmin, xmax, orientation]], axis=0)
     return paramArray
 
 
@@ -151,21 +151,120 @@ def aggMinMaxIndexesSorted(aggregated):
     return sortedindexes
 
 
-# Computes the first sigmoid curve from the aggregate,
-# based on its first inflection point and alpha parameter.
-def firstSigmoidOfAggregateFromInflectionPointKnowingAlpha(aggregate, alpha):
-    minmaxes = aggMinMaxIndexesSorted(aggregate)
+def aggMinMaxValuesSortedByIndex(aggregated):
+    return np.array(aggregated[1][aggMinMaxIndexesSorted(aggregated)])
+
+def findHalfBetweenLocalValues(aggregate, firstlocal, secondlocal, halfvalue):
+    halfindex = firstlocal
+
+    closestvalue = abs(aggregate[1][firstlocal]-halfvalue)
+    for betweenindex in range(firstlocal, secondlocal-1):
+        if closestvalue >= abs(aggregate[1][betweenindex+1]-halfvalue):
+            print(str(closestvalue) +" <=?"+ str(abs(aggregate[1][betweenindex+1]-halfvalue)))
+            closestvalue = abs(aggregate[1][betweenindex+1]-halfvalue)
+        else:
+            print("MEGVAN")
+            halfindex = betweenindex
+            break
+
+    return halfindex + aggregate[0][0]
+
+
+#Gives all the sigmoids of an aggregate from local min-max points
+# knowing alpha
+def allSigmoidsFromLocalValuesHalvingKnowingAlpha(aggregate, alpha):
+    xmin = aggregate[0][0]
+    xmax = aggregate[0][-1]
+    minmaxvalues = aggMinMaxValuesSortedByIndex(aggregate)
+    minmaxindexes = aggMinMaxIndexesSorted(aggregate)
+
+    halfindexes = []
+
+    orientations = []
+    #iterate through local min-max or max-min pairs
+    for i in range(minmaxvalues.size-1):
+        halfvalue = (minmaxvalues[i]+minmaxvalues[i+1]) / 2
+        orientations.append(minmaxvalues[i] < minmaxvalues[i+1])
+        #iterate through the space between a min-max pair and find halfindex
+        halfindexes.append(findHalfBetweenLocalValues(aggregate, minmaxindexes[i], minmaxindexes[i+1], halfvalue))
+
+    params = createParamsArray(alpha, halfindexes[0], xmin, xmax, orientations[0])
+    for i in range(1, len(halfindexes)):
+        params = appendParams(params, alpha, halfindexes[i], xmin, xmax, orientations[i])
+
+    sigmoids = sigmoidArray(params)
+    return sigmoids
+
+
+#Finds inflection points of an aggregate
+def findInflectionPoints(aggregate):
+    aggregateY = np.array(aggregate[1])
+
+    aggregateY[(0.49999 < aggregateY) & (aggregateY < 0.50001)] = 0.5
+    aggregateY = gaussian_filter1d(aggregateY, 10)
+
+    derrivates = np.gradient(np.gradient(aggregateY))
+    infls = np.where(1 < abs(np.diff(np.sign(derrivates))))[0]
+    #print(abs(np.diff(np.sign(derrivates))))
+    print("infl")
+    print(infls)
+
+    return infls
+
+#Gives all the sigmoids of an aggregate from inflection points
+# knowing alpha
+def allSigmoidsFromInflectionPointKnowingAlpha(aggregate, alpha):
+    minmaxvalues = aggMinMaxValuesSortedByIndex(aggregate)
+    minmaxindexes = aggMinMaxIndexesSorted(aggregate)
+    print("minmaxindex")
+    print(minmaxindexes)
+    print("minmaxvalue")
+    print(minmaxvalues)
     xmin = aggregate[0][0]
     xmax = aggregate[0][-1]
     aggregateY = np.array(aggregate[1])
 
-    aggregateY[(0.499999 < aggregateY) & (aggregateY < 0.500001)] = 0.5
-    inputaggregateY = gaussian_filter1d(aggregateY, 4)
+    infls = findInflectionPoints(aggregate)
+    orientations = []
 
-    derrivates = np.gradient(np.gradient(inputaggregateY))
-    infls = np.where(1 < abs(np.diff(np.sign(derrivates))))[0]
+    reversedminmaxindexes = list(reversed(minmaxindexes))
+    for inflpoint in infls:
+        for minmaxindex in reversedminmaxindexes:
+            if minmaxindex < inflpoint:
+                orientations.append(aggregateY[minmaxindex] < aggregateY[inflpoint])
+                break
 
-    subtractionParams = createParamsArray(alpha, infls[0] + xmin, xmin, xmax, minmaxes[0] < minmaxes[1])
+    params = createParamsArray(alpha, infls[0]+xmin, xmin, xmax, orientations[0])
+    for i in range(1, len(infls)):
+        params = appendParams(params, alpha, infls[i]+xmin, xmin, xmax, orientations[i])
+
+    return sigmoidArray(params)
+
+
+# Computes the first sigmoid curve from the aggregate,
+# based on its first inflection point and alpha parameter.
+def firstSigmoidFromInflectionPointKnowingAlpha(aggregate, alpha):
+    minmaxvalues = aggMinMaxValuesSortedByIndex(aggregate)
+    minmaxindexes = aggMinMaxIndexesSorted(aggregate)
+    print("minmaxindex")
+    print(minmaxindexes)
+    print("minmaxvalue")
+    print(minmaxvalues)
+    xmin = aggregate[0][0]
+    xmax = aggregate[0][-1]
+
+    infls = findInflectionPoints(aggregate)
+
+    orientation = None
+    i = 0
+    for index in minmaxindexes:
+        if index > infls[0]:
+            orientation = minmaxvalues[0] < minmaxvalues[i]
+            break
+        i += 1
+
+    subtractionParams = createParamsArray(alpha, infls[0] + xmin, xmin, xmax, orientation)
+
     subtractionSigmoid = sigmoidArray(subtractionParams)
 
     return subtractionSigmoid
@@ -173,27 +272,47 @@ def firstSigmoidOfAggregateFromInflectionPointKnowingAlpha(aggregate, alpha):
 
 # Divides the aggregates prod by a sigmoid,
 # to modify its values and returns the adjusted aggregate.
-def subtractSigmoidFromAggregateByDivide(inputaggregate, sigmoid):
-    returnaggregate = inputaggregate
+def divideAggregateProdBySigmoid(inputaggregate, sigmoid):
+    returnaggregate = np.array(inputaggregate)
 
     inputprod = (1 / inputaggregate[1]) - 1
     preprod = (1 - sigmoid[0][1]) / sigmoid[0][1]
     prod = inputprod / preprod
 
-    returnaggregate[1] = inputaggregate[1] = 1 / (1 + prod)
+    returnaggregate[1] = 1 / (1 + prod)
 
     return returnaggregate
 
 
+def subtractSigmoidFromAggregate(inputaggregate, sigmoid):
+    returnaggregate = np.array(inputaggregate)
+    returnaggregate[1] = returnaggregate[1] - sigmoid[0][1]
+
+    return returnaggregate
+
+#
+def subtractSigmoidFromAggregateAndNormalize(inputaggregate, sigmoid):
+    subtracted = subtractSigmoidFromAggregate(inputaggregate, sigmoid)
+    subtracted[1] = subtracted[1] + 0.5
+    return subtracted
+
+
 # Subtracts the first sigmoid from the aggregate by dividing its prod,
 # based on the alpha parameter.
-def subtractFirstSigmoidByDivideKnowingAlpha(inputaggregate, alpha):
-    firstsigmoid = firstSigmoidOfAggregateFromInflectionPointKnowingAlpha(inputaggregate, alpha)
+def divideAggregateProdByFirstSigmoidKnowingAlpha(inputaggregate, alpha):
+    firstsigmoid = firstSigmoidFromInflectionPointKnowingAlpha(inputaggregate, alpha)
 
-    newaggregate = subtractSigmoidFromAggregateByDivide(inputaggregate, firstsigmoid)
+    newaggregate = divideAggregateProdBySigmoid(inputaggregate, firstsigmoid)
 
     return newaggregate
 
+# Subtracts the first sigmoid from the aggregate based on the alpha parameter.
+def subtractFirstSigmoidFromAggregateKnowingAlpha(inputaggregate, alpha):
+    firstsigmoid = firstSigmoidFromInflectionPointKnowingAlpha(inputaggregate, alpha)
+    sigmoidArrayShow(firstsigmoid)
+    newaggregate = subtractSigmoidFromAggregateAndNormalize(inputaggregate, firstsigmoid)
+
+    return newaggregate
 
 #Takes a 2d array as parameter that consists of two arrays.
 #The first array is x values, the second is y values
